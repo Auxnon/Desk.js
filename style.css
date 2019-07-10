@@ -1,0 +1,168 @@
+html, body{
+	padding:0;
+	margin: 0;
+	--baseBackground: rgba(235,235,235,0.95);
+}
+#main{
+	width:100%;
+	height: 100%;
+	position: absolute;
+}
+img{
+	width: 100%;
+	height:100%;
+	user-select: none;
+	user-drag: none;
+	pointer-events: none;
+}
+#background{
+	width:100%;
+	height: 100%;
+	position: absolute;
+	background-image: url('assets/wallpaper.jpeg');
+	transform: scale(1.1);
+	filter: blur(10px);
+}
+#backgroundCover{
+	width:100%;
+	height: 100%;
+	position: absolute;
+	background-color: rgba(255,255,255,0.1);
+}
+.desktop{
+	opacity: 0.8;
+	width: 100%;
+	height: 100%;
+}
+.pane{
+	display: block;
+	position: absolute;
+	left: 100px;
+	top: 100px;
+	width: 200px;
+	border-radius: 10px;
+	background-color: var(--baseBackground);
+	overflow: hidden;
+	user-select: none;
+	border: solid white 1px;
+}
+.pane p{
+	padding: 20px;
+}
+header{
+	position: relative;
+	width: 100%;
+	background-color: #ddd;
+	display: block;
+	padding: 10px;
+	padding-left: 20px;
+	padding-right: 20px;
+}
+header .logo{
+	width: 16px;
+	height: 16px;
+	background-color: green;
+	border-radius: 8px;
+	position: relative;
+	display: inline-block;
+	margin-left: 8px;
+	margin-right: 8px;
+}
+
+.group{
+	position: absolute;
+	background-color: rgba(235,235,235,0.2);
+	border-radius: 10px;
+	border:solid red 2px;
+	width: 300px;
+	height: 300px;
+
+}
+.item{
+	display: block;
+	position: absolute;
+	z-index: 0;
+	left:0;
+	top:0;
+	width:100px;
+	height:100px;
+	border-radius: 60px;
+	background: white;
+	box-shadow: 1px 1px 5px 1px rgba(0,0,0,0.5);
+	text-align: center;
+	line-height: 20px;
+	user-select: none;
+	box-sizing: border-box;
+}
+.item div{
+	display: block;
+}
+.dragging{
+	 /*transform: scale(1.05,1.05);*/
+	box-shadow: 5px 5px 10px 3px rgba(0,0,0,0.5);
+	z-index: 1;
+}
+.selected{
+	background-color: blue;
+	/*--time:1s;
+	transition: left var(--time), top var(--time);*/
+}
+.vacuum{
+	box-sizing: border-box;
+	border: solid blue 2px;
+}
+.double{
+	border: solid green 6px !important;
+}
+.circle{
+	border-radius: 10px;
+	background: #ff000044;
+	width: 20px;
+	height: 20px;
+	position: absolute;
+	transform: translate(-50%,-50%);
+	touch-action:none;
+}
+.bubble{
+	width:60px;
+	height:60px;
+	border-radius: 60px;
+	background: var(--baseBackground);
+	position: absolute;
+	left: 0;
+	top:0;
+	transform: translate(-50%,-50%);
+	transition: border 0.5s, opacity 0.5s, width 0.5s, height 0.5s;
+	background-size: contain;
+}
+.hideBubble{
+	border:solid white 10px;
+	width:20px;
+	height:20px;
+	opacity: 0;
+}
+.selectBubble{
+	position: absolute;
+	
+	width:60px;
+	height:60px;
+	transform: translate(-50%,-50%);
+	border-radius: 30px;
+	border:solid white 2px;
+	touch-action:none;
+	user-select: none; 
+}
+.selectBubble *{
+	color:white;
+	font-size: 32px;
+	text-align: center;
+	text-shadow: 1px 0px 2px black,2px 1px 4px white,-1px 0px 6px black;
+	touch-action:none;
+	user-select: none; 
+	margin-top: -1em;
+}
+
+
+
+
+

@@ -1,0 +1,14 @@
+<svg version="1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="128" height="128">
+  <defs>
+    <path d="M104 36H20" id="a"/>
+    <path d="M104 52H20" id="b"/>
+    <path d="M104 68H20" id="c"/>
+    <path d="M104 84H20" id="d"/>
+    <path d="M84 100H20" id="e"/>
+  </defs>
+  <use xlink:href="#a" fill-opacity="0" stroke="#000" stroke-width="8"/>
+  <use xlink:href="#b" fill-opacity="0" stroke="#000" stroke-width="8"/>
+  <use xlink:href="#c" fill-opacity="0" stroke="#000" stroke-width="8"/>
+  <use xlink:href="#d" fill-opacity="0" stroke="#000" stroke-width="8"/>
+  <use xlink:href="#e" fill-opacity="0" stroke="#000" stroke-width="8"/>
+</svg>

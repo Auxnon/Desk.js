@@ -1,4 +1,4 @@
-var doubleTapSpeed=300;
+/*
 
 var screenWidth;
 var screenHeight;
@@ -9,19 +9,33 @@ var cell=[];
 var player={x:0,y:0,ix:0,iy:0};
 var entities=[];
 var scr;
-var targets=[];
-var targetsHashed=[];
-var double=false;
-var multiDouble=0;
-var scaleTrigger=false;
-var pressThrough=true;
 
-var bubbleMenu=null;
+
+
+
+var scaleTrigger=false;
+
+
+var bubbleMenu=null;*/
 
 
 //var vacuumMode=false;
 
-function init(){
+var doubleTapSpeed=300;
+
+var targets=[];
+var targetsHashed=[];
+var double=false;
+var multiDouble=0;
+
+//dev
+var pressThrough=false;
+
+const  SIZES=[ {w:86,h:86},{w:128,h:192},{w:512,h:256}]
+
+
+/*
+function OLDinit(){
 	let panes=$('.draggable');
 	applyPaneMods(panes);
 	panes.each(function(i,e){
@@ -31,37 +45,213 @@ function init(){
 	main.on("pointerup",pointerUp).on("pointerdown",mainDown)
 	.on("pointermove",pointerMove).css("touch-action","none").on('paste',pasteEvent)
 	.contextmenu(mainContext);
-	main[0].addEventListener("drop",dropItem);
-	main[0].addEventListener("dragover",dragItemOver);
-	
+	//initExternal(main[0]);
+}*/
+
+function init(){
+	let panes=document.querySelectorAll('.draggable');
+
+	//applyPaneMods(panes);
+	panes.forEach((e,i)=>{
+		e.style.zIndex=i;
+		e.style.left='0px'
+		e.style.top='0px'
+		applyPaneMods(e);
+	});
+
+	let main=document.querySelector("#main");
+	main.addEventListener('pointerup',pointerUp);
+	main.addEventListener('pointerdown',pointerDown);
+	main.addEventListener('pointermove',pointerMove);
+	main.addEventListener('contextmenu',mainContext);
+	main.style.touchAction='none';
+
+	//initExternal(main[0]);
+	//initCopyPaste(main)
+}$(init);
+
+
+function mainMouseUp(ev){
+
 }
+
+function mainMouseDown(ev){
+	pointerDown(ev,ev.clientX,ev.clientY)
+}
+
+function mainTouchUp(ev){
+
+}
+
+function mainTouchDown(ev){
+	pointerDown(ev,ev.clientX,ev.clientY)
+}
+function mainMouseMove(ev){
+
+}
+function mainTouchMove(ev){
+
+}
+
+function doubleTapOne(pane){
+		double=false;
+		console.log('double!!!!');
+		snapToScale(pane,true);
+}
+function pasteInto(entity){
+
+	navigator.clipboard.readText()
+	  .then(text => {
+	    console.log('Pasted content: ', text);
+	    entity.querySelector('p').innerText=text;
+	  })
+	  .catch(err => {
+	    console.error('Failed to read clipboard contents: ', err);
+	  });
+}
+
 function applyPaneMods(pane){
-	pane.on("pointerdown",pointerDown).contextmenu(paneContext)
+	pane.addEventListener('pointerdown',pointerDown);
+	pane.addEventListener('contextmenu',paneContext);
+	//pane.on("pointerdown",pointerDown).contextmenu(paneContext)
 }
 
 
-function dropItem(e){
-	e.preventDefault();
-	e.stopPropagation();
-	var data = e.dataTransfer.getData("text");
-	console.log('dropped '+data)
+function pointerDown(ev){
+	let entity=this;//ev.target;
+	if(!entity.classList.contains('draggable'))
+		return;
+	let offsetX=parseInt(entity.style.left)-ev.clientX;
+	let offsetY=parseInt(entity.style.top)-ev.clientY;
+	
+	let targetObj={entity:entity,
+		x:ev.clientX,
+		y:ev.clientY,
+		parent:entity.parentElement,
+		selected:[],
+		offsetX:offsetX,
+		offsetY:offsetY,
+		w:entity.offsetWidth,
+		h:entity.offsetHeight,
+		double:true,
+		pid:ev.pointerId};
 
-	let file=e.dataTransfer.files[0];
-	var fileReader = new FileReader();
-    fileReader.onload = (function(file) {
-       return function(e) {
-       		addImg(e.target.result);
-       };
-    })(file);
-	fileReader.readAsDataURL(file);
-}
-function dragItemOver(e){
-	e.stopPropagation();
-	e.preventDefault();
-	e.dataTransfer.dropEffect='copy'
-}
+	let multiObject=false;
+	if(entity.classList.contains('dragging')){
+		for(let i=0;i<targets.length;i++){
+			if(targets[i].entity && targets[i].entity==entity){
+				multiObject=targets[i];
+			}
+		}
+	}
 
-function pointerDown(e){
+	if(multiObject){ //multiple figners on the same object logic follows
+
+		if(!multiObject.linked){
+			multiObject.linked={w:0,h:0,offsetX:0,offsetY:0,array:[]};
+			multiObject.linked.array.push(multiObject)
+		}
+		multiObject.linked.array.push(targetObj);
+		targetObj.linked=multiObject.linked;
+
+		//set the initial dimensions of these multiple points for calculating scale
+		let sx,sy,lowest={x:0,y:0},offset={x:0,y:0};
+		targetObj.linked.array.forEach((ent,i)=>{
+		 	if(!sx){
+		 		sx=ent.x//+ent.offsetX;
+		 		lowest.x=ent.x;
+		 		offset.x=ent.offsetX;
+		 	}else{
+		 		sx-=ent.x//+ent.offsetX;
+		 		if(ent.x<lowest.x){
+		 			lowest.x=ent.x;
+		 			offset.x=ent.offsetX;
+		 		}
+		 	}
+		 	if(!sy){
+		 		sy=ent.y//+ent.offsetY;
+		 		lowest.y=ent.y;
+		 		offset.y=ent.offsetY;
+		 	}else{
+		 		sy-=ent.y//+ent.offsetY;
+		 		if(ent.y<lowest.y){
+		 			lowest.y=ent.y;
+		 			offset.y=ent.offsetY;
+		 		}
+		 	}
+		});
+		targetObj.linked.w=Math.abs(sx);
+		targetObj.linked.h=Math.abs(sy);
+		targetObj.linked.offsetX=offset.x;
+		targetObj.linked.offsetY=offset.y;
+		targetObj.linked.lowestX=lowest.x;
+		targetObj.linked.lowestY=lowest.y;
+
+	
+		
+	} else { //singular finger logic follows
+		entity.classList.add("dragging")
+		entity.classList.remove("selected");
+
+		if(pressThrough){
+			let hits=[];
+			$('.draggable').not(entity).each((i,ee)=>{
+				let ent=$(ee);
+				if(e.clientX > ent.position().left && e.clientX<ent.position().left+ent.outerWidth()){
+					if(e.clientY > ent.position().top && e.clientY<ent.position().top+ent.outerHeight()){
+						let obj={x:-e.clientX+ent.position().left,y:-e.clientY+ent.position().top,entity:ent,w:ent.outerWidth(),h:ent.outerHeight()};
+						hits.push(obj);
+					}
+				}
+			});
+			targetObj.selected=hits;
+		}
+
+		let z=parseInt(entity.style.zIndex);
+		let draggables=document.querySelectorAll('.draggable');
+		draggables.forEach((e,i)=>{
+			let zEnt=parseInt(e.style.zIndex);
+			if(zEnt>z){
+				e.style.zIndex=--zEnt;
+			}
+		});
+		entity.style.zIndex=draggables.length-1;
+	}
+
+	//===double tap management===
+	if(double){
+		if(entity==double){
+			if(multiDouble>1 ){
+				if(targetObj.linked && targetObj.linked.array.length>1){
+					console.log('multidouble!!!! '+multiDouble);
+					double=false;
+					if(entity.style.width=='100%'){
+						entity.css({transition:'0.2s',left:targetObj.linked.lowestX-40,top:targetObj.linked.lowestY-40,width:(targetObj.linked.w+80)+'px',height:(targetObj.linked.h+80)+'px'});
+						setTimeout(function(){entity.css('transition','');},200);
+					}else{
+						entity.css({transition:'0.2s',left:0,top:0,width:'100%',height:'100%'});
+						setTimeout(function(){entity.css('transition','');},200);
+					}
+				}
+			}else{
+				doubleTapOne(entity);
+			}
+		}
+	}
+	setTimeout(function(){
+		targetObj.double=false;
+	},doubleTapSpeed);
+	//============================
+	
+
+
+	targets.push(targetObj);
+	targetsHashed[targetObj.pid]=targetObj;
+	ev.stopPropagation();
+}	
+
+/*
+function OLDpointerDown(e){
 	let entity=$(this);
 	let offsetX=entity.position().left-e.clientX;
 	let offsetY=entity.position().top-e.clientY;
@@ -199,33 +389,33 @@ function pointerDown(e){
 	targets.push(targetObj);
 	targetsHashed[targetObj.pid]=targetObj;
 	e.stopPropagation();
-}	
-//annoying polyfills until Safari (at least for iPads) supports pointer events
+}	*/
+/*//annoying polyfills until Safari (at least for iPads) supports pointer events
 function touchMove(e){
 	gestureMove(e,)
+}*/
+function pointerMove(ev){
+	gestureMove(ev,ev.pointerId);
 }
-function pointerMove(e){
-	gestureMove(e,e.pointerId);
-}
-function gestureMove(e,id){
+function gestureMove(ev,id){
 
 	if(targets.length){
-		let targetObj=targetsHashed[e.pointerId];
+		let targetObj=targetsHashed[ev.pointerId];
 		if(targetObj && targetObj.entity){
 			let entity=targetObj.entity;
-			let pw=targetObj.parent.outerWidth();
-			let ph=targetObj.parent.outerHeight();
+			let pw=targetObj.parent.offsetWidth;
+			let ph=targetObj.parent.offsetHeight;
 			//sanity management, purge pointers that leave the screen
-			if(e.clientX>pw || e.clientX<0 || e.clientY>ph || e.clientY<0){
+			if(ev.clientX>pw || ev.clientX<0 || ev.clientY>ph || ev.clientY<0){
 				console.log('early pointer purge');
-				pointerPurge(e.pointerId);
+				pointerPurge(ev.pointerId);
 				return;
 			}
-			let maxW=pw-entity.outerWidth();
-			let maxH=ph-entity.outerHeight();
+			let maxW=pw-entity.offsetWidth;
+			let maxH=ph-entity.offsetHeight;
 			
-			let left=e.clientX+targetObj.offsetX;
-			let top=e.clientY+targetObj.offsetY;
+			let left=ev.clientX+targetObj.offsetX;
+			let top=ev.clientY+targetObj.offsetY;
 
 			if(left>maxW)
 				left=maxW;
@@ -248,8 +438,8 @@ function gestureMove(e,id){
 						}
 					})
 				}*/
-				targetObj.x=e.clientX;
-				targetObj.y=e.clientY;
+				targetObj.x=ev.clientX;
+				targetObj.y=ev.clientY;
 
 				//doing some absolutely wild logic here so please bare with me!
 				let lowest={x:0,y:0};
@@ -311,12 +501,17 @@ function gestureMove(e,id){
 					let w=targetObj.linked.array[0].w-spanX;
 					let h=targetObj.linked.array[0].h-spanY;
 
-					entity.css({left:lowest.x+"px",top:lowest.y+"px",width:w+"px",height:h+"px"});
+					entity.style.left=lowest.x+"px";
+					entity.style.top=lowest.y+"px";
+					entity.style.width=w+"px";
+					entity.style.height=h+"px";
 				//}
 			}else{
-				entity.css({left:left+"px",top:top+"px"});
-				targetObj.x=e.clientX;
-				targetObj.y=e.clientY;
+				entity.style.left=left+"px";
+				entity.style.top=top+"px";
+
+				targetObj.x=ev.clientX;
+				targetObj.y=ev.clientY;
 				left-=targetObj.offsetX;
 				top-=targetObj.offsetY;
 				if(targetObj.selected){
@@ -333,7 +528,8 @@ function gestureMove(e,id){
 							T=mT;
 						if(T<0)
 							T=0;
-						obj.entity.css({left:L,top:T});
+						obj.entity.style.left=L+'px';
+						obj.entity.style.top=T+'px';
 					});
 				}
 				/*if(vacuumMode){
@@ -360,15 +556,15 @@ function gestureMove(e,id){
 			}
 
 		}
-		if(bubbleMenu && bubbleMenu.pid==e.pointerId){
+		/*if(bubbleMenu && bubbleMenu.pid==e.pointerId){
 			moveBubbleSelector(e.clientX,e.clientY);
-		}
+		}*/
 	}
 
 	
 }
 
-function pointerUp(e){
+function pointerUp(ev){
 	scaleTrigger=false;
 	/*if(selected.length>0){
 		let group=$('<div class="group draggable"></div>');
@@ -380,7 +576,7 @@ function pointerUp(e){
 		group.on("pointerdown",down).contextmenu(context);
 		$('.desktop').append(group);
 	}*/
-	pointerPurge(e.pointerId);
+	pointerPurge(ev.pointerId);
 }
 function pointerPurge(id){
 	let targetObj=targetsHashed[id];
@@ -394,15 +590,17 @@ function pointerPurge(id){
 				}
 			}
 			if(targetObj.linked.array.length<=1){ //this means there's one to no fingers left so let's bake in our width if we had scaled
-				targetObj.linked.array[0].w=targetObj.entity.width();
-				targetObj.linked.array[0].h=targetObj.entity.height();
-				targetObj.linked.array[0].offsetX=targetObj.entity.position().left-targetObj.linked.array[0].x;
-				targetObj.linked.array[0].offsetY=targetObj.entity.position().top-targetObj.linked.array[0].y;
+				targetObj.linked.array[0].w=targetObj.entity.offsetWidth;
+				targetObj.linked.array[0].h=targetObj.entity.offsetHeight;
+				targetObj.linked.array[0].offsetX=parseInt(targetObj.entity.style.left)-targetObj.linked.array[0].x;
+				targetObj.linked.array[0].offsetY=parseInt(targetObj.entity.style.top)-targetObj.linked.array[0].y;
 				targetObj.linked.array[0].linked=null;
 				console.log('solo pointer')
 			}
 		}else if(targetObj.entity){ //if a singular pointer, do some trivial nonsense
-			targetObj.entity.removeClass("dragging vacuum selected");
+			targetObj.entity.classList.remove("dragging","vacuum","selected");
+
+			
 		}
 
 		//take care of some double click logic
@@ -427,16 +625,22 @@ function pointerPurge(id){
 				break;
 			}
 		}
-	}
 
-	if(bubbleMenu && bubbleMenu.pid==id){
+
+	
+
+		snapToScale(targetObj.entity);
+
+		}
+
+
+	/*if(bubbleMenu && bubbleMenu.pid==id){
 		stopBubbleMenu();
-	}
+	}*/
 }
 function mainContext(e){
 	e.preventDefault();
 	
-		
 }
 function mainDown(e){
 	$('.selectBubble').show();
@@ -473,8 +677,76 @@ function mainDown(e){
 	moveBubbleSelector(e.clientX,e.clientY);
 	
 	}
+}
+
+//process through clipped sizes to a match
+function snapToScale(entity,advanceSize){
+	let w=entity.offsetWidth;
+	let h=entity.offsetHeight; 
+	let bestX=-1;
+	let bestY=-1;
+	let closeX=9999999,closeY=9999999;
+	let perfect=-1;
+	if(advanceSize)
+		debugger
+
+	SIZES.forEach((o,i)=>{
+			let dx=Math.abs(o.w-w)
+			let dy=Math.abs(o.h-h)
+			if(advanceSize && dx==0 && dy==0)
+				perfect=i;
+			if(dx<closeX){
+				bestX=i;
+				closeX=dx;
+			}
+			if(dy<closeY){
+				bestY=i;
+				closeY=dy;
+			}
+	});
+
+	if(advanceSize && perfect>=0){
+		if(perfect+1>=SIZES.length)
+			perfect=-1
+		let targetSize=SIZES[perfect+1];
+		let dx=(w-targetSize.w)/2;
+		let dy=(h-targetSize.h)/2;
+		entity.style.width=targetSize.w+'px';
+		entity.style.height=targetSize.h+'px';
+		entity.style.left=(parseInt(entity.style.left)+dx)+'px'
+		entity.style.top=(parseInt(entity.style.top)+dy)+'px'
+	}else{
+		if(bestX>=0){
+		let dx=(w-SIZES[bestX].w)/2;
+		entity.style.width=SIZES[bestX].w+'px';
+		entity.style.left=(parseInt(entity.style.left)+dx)+'px'
+		}
+		if(bestY>=0){
+			let dy=(h-SIZES[bestY].h)/2;
+			entity.style.height=SIZES[bestY].h+'px';
+			entity.style.top=(parseInt(entity.style.top)+dy)+'px'
+		}
+	}
 	
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function stopBubbleMenu(){
 	let main=$("#main");
 	$('.bubble').addClass('hideBubble');//.css({left:main.outerWidth()/2,top:main.outerHeight()*1.5});
@@ -552,7 +824,8 @@ function paneContext(e){
 	e.preventDefault();
 	e.stopPropagation();
 	//vacuumMode=true;
-	$(this).addClass('vacuum');
+	//$(this).addClass('vacuum');
+	console.log('context for pane')
 }
 
 var cycleDraw=0;
@@ -582,4 +855,39 @@ function draw(x,y,str){
 	}
 } 
 
-$(init);
+
+
+///CopyPaste
+function initCopyPaste(main){
+	main.on('paste',pasteEvent)
+}
+
+/////////EXTERNAL///////////
+////////////////
+
+function initExternal(target){
+	target.addEventListener("drop",dropItem);
+	target.addEventListener("dragover",dragItemOver);
+}
+
+function dropItem(e){
+	e.preventDefault();
+	e.stopPropagation();
+	var data = e.dataTransfer.getData("text");
+	console.log('dropped '+data)
+
+	let file=e.dataTransfer.files[0];
+	var fileReader = new FileReader();
+    fileReader.onload = (function(file) {
+       return function(e) {
+       		addImg(e.target.result);
+       };
+    })(file);
+	fileReader.readAsDataURL(file);
+}
+function dragItemOver(e){
+	e.stopPropagation();
+	e.preventDefault();
+	e.dataTransfer.dropEffect='copy'
+}
+

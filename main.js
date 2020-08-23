@@ -21,12 +21,15 @@ var bubbleMenu=null;*/
 
 //var vacuumMode=false;
 
-var doubleTapSpeed=300;
+var doubleTapSpeed=300; //300
+var scaleSnapThreshold=100;
 
 var targets=[];
 var targetsHashed=[];
 var double=false;
 var multiDouble=0;
+
+var blueprint;
 
 //dev
 var pressThrough=false;
@@ -66,31 +69,53 @@ function init(){
 	main.addEventListener('contextmenu',mainContext);
 	main.style.touchAction='none';
 
+	/*window.addEventListener('mouseup',ev=>{
+		if(targets.length){
+			targets=[];
+			targetsHashed=[];
+		}
+	})
+	window.addEventListener('touchend',ev=>{
+		if(ev.touches.length<=0 && targets.length>0){
+			targets=[];
+			targetsHashed=[];
+		}
+	})*/
+	//initBluePrint(main,0,main.offsetHeight-128,64,128);
+
 	//initExternal(main[0]);
 	//initCopyPaste(main)
+
+	//little ios fix to stop double tap zoom, and possibly other things we dont want in this library!
+	/*if ('ongesturestart' in window){
+		window.addEventListener('gesturestart',function(ev){
+			ev.preventDefault();
+		})
+	}*/
+	initButtonTest();
 }$(init);
-
-
-function mainMouseUp(ev){
-
+function initButtonTest(){
+	document.querySelectorAll('.button').forEach((e,i)=>{
+		e.addEventListener('pointerdown',ev=>{
+			console.log('hi'+e.innerText)
+			e.parentElement.querySelector('p').innerText=e.innerText
+			ev.stopPropagation();
+		})
+	})
 }
-
-function mainMouseDown(ev){
-	pointerDown(ev,ev.clientX,ev.clientY)
+	
+function initBluePrint(main,x,y,w,h){
+	blueprint=document.createElement('div');
+	blueprint.className='blueprint';
+	blueprint.style.width=w+'px';
+	blueprint.style.height=h+'px';
+	blueprint.style.left=x+'px';
+	blueprint.style.top=y+'px';
+	blueprint.style.display='block'
+	main.appendChild(blueprint);
 }
-
-function mainTouchUp(ev){
-
-}
-
-function mainTouchDown(ev){
-	pointerDown(ev,ev.clientX,ev.clientY)
-}
-function mainMouseMove(ev){
-
-}
-function mainTouchMove(ev){
-
+function moveBluePrint(x,y,w,h){
+	blueprint
 }
 
 function doubleTapOne(pane){
@@ -226,11 +251,11 @@ function pointerDown(ev){
 					console.log('multidouble!!!! '+multiDouble);
 					double=false;
 					if(entity.style.width=='100%'){
-						entity.css({transition:'0.2s',left:targetObj.linked.lowestX-40,top:targetObj.linked.lowestY-40,width:(targetObj.linked.w+80)+'px',height:(targetObj.linked.h+80)+'px'});
+						//entity.css({transition:'0.2s',left:targetObj.linked.lowestX-40,top:targetObj.linked.lowestY-40,width:(targetObj.linked.w+80)+'px',height:(targetObj.linked.h+80)+'px'});
 						setTimeout(function(){entity.css('transition','');},200);
 					}else{
-						entity.css({transition:'0.2s',left:0,top:0,width:'100%',height:'100%'});
-						setTimeout(function(){entity.css('transition','');},200);
+						//entity.css({transition:'0.2s',left:0,top:0,width:'100%',height:'100%'});
+						//setTimeout(function(){entity.css('transition','');},200);
 					}
 				}
 			}else{
@@ -427,17 +452,6 @@ function gestureMove(ev,id){
 				top=0;
 
 			if(targetObj.linked && targetObj.linked.array.length>1){
-				/*if(targetObj.pid!=e.pointerId){
-					targetObj.multiples.forEach((ent,i)=>{
-						if(ent.pid==e.pointerId){
-							let dx=e.clientX-ent.originX;
-							let dy=e.clientY-ent.originY;
-							targetObj.entity.css({width:(targetObj.w+dx),height:(targetObj.h+dy)});;
-							
-							return;
-						}
-					})
-				}*/
 				targetObj.x=ev.clientX;
 				targetObj.y=ev.clientY;
 
@@ -598,9 +612,7 @@ function pointerPurge(id){
 				console.log('solo pointer')
 			}
 		}else if(targetObj.entity){ //if a singular pointer, do some trivial nonsense
-			targetObj.entity.classList.remove("dragging","vacuum","selected");
-
-			
+			targetObj.entity.classList.remove("dragging","selected");
 		}
 
 		//take care of some double click logic
@@ -626,14 +638,8 @@ function pointerPurge(id){
 			}
 		}
 
-
-	
-
 		snapToScale(targetObj.entity);
-
-		}
-
-
+	}
 	/*if(bubbleMenu && bubbleMenu.pid==id){
 		stopBubbleMenu();
 	}*/
@@ -683,49 +689,49 @@ function mainDown(e){
 function snapToScale(entity,advanceSize){
 	let w=entity.offsetWidth;
 	let h=entity.offsetHeight; 
-	let bestX=-1;
-	let bestY=-1;
-	let closeX=9999999,closeY=9999999;
+	let best=-1;
+
+	let close=9999999;//,closeY=9999999;
 	let perfect=-1;
-	if(advanceSize)
-		debugger
+
 
 	SIZES.forEach((o,i)=>{
 			let dx=Math.abs(o.w-w)
 			let dy=Math.abs(o.h-h)
 			if(advanceSize && dx==0 && dy==0)
 				perfect=i;
-			if(dx<closeX){
-				bestX=i;
-				closeX=dx;
-			}
-			if(dy<closeY){
-				bestY=i;
-				closeY=dy;
+			if((dx+dy)<close && (advanceSize || (dx+dy)<scaleSnapThreshold) ){
+				best=i;
+				close=dx+dy;
 			}
 	});
-
+	let setSize;
 	if(advanceSize && perfect>=0){
 		if(perfect+1>=SIZES.length)
 			perfect=-1
 		let targetSize=SIZES[perfect+1];
 		let dx=(w-targetSize.w)/2;
 		let dy=(h-targetSize.h)/2;
-		entity.style.width=targetSize.w+'px';
-		entity.style.height=targetSize.h+'px';
-		entity.style.left=(parseInt(entity.style.left)+dx)+'px'
-		entity.style.top=(parseInt(entity.style.top)+dy)+'px'
+		setSize=[(parseInt(entity.style.left)+dx),(parseInt(entity.style.top)+dy),targetSize.w,targetSize.h]
 	}else{
-		if(bestX>=0){
-		let dx=(w-SIZES[bestX].w)/2;
-		entity.style.width=SIZES[bestX].w+'px';
-		entity.style.left=(parseInt(entity.style.left)+dx)+'px'
+		if(best>=0){
+			let dx=(w-SIZES[best].w)/2;
+			let dy=(h-SIZES[best].h)/2;
+			setSize=[(parseInt(entity.style.left)+dx),(parseInt(entity.style.top)+dy),SIZES[best].w,SIZES[best].h]
 		}
-		if(bestY>=0){
-			let dy=(h-SIZES[bestY].h)/2;
-			entity.style.height=SIZES[bestY].h+'px';
-			entity.style.top=(parseInt(entity.style.top)+dy)+'px'
+	}
+
+	if(setSize){
+		if(setSize[2]>window.innerWidth){
+			entity.style.width='100%'
+			entity.style.left='50%'
+		}else{
+			entity.style.left=setSize[0]+'px'
+			entity.style.width=setSize[2]+'px'
 		}
+
+		entity.style.top=setSize[1]+'px'
+		entity.style.height=setSize[3]+'px'
 	}
 	
 }

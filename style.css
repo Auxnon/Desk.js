@@ -2,11 +2,13 @@ html, body{
 	padding:0;
 	margin: 0;
 	--baseBackground: rgba(235,235,235,0.95);
+	touch-action: manipulation;
 }
 #main{
 	width:100%;
 	height: 100%;
 	position: absolute;
+	z-index: 1;
 }
 img{
 	width: 100%;
@@ -97,11 +99,61 @@ header .logo{
 .item div{
 	display: block;
 }
+.draggable{
+	box-sizing: border-box;
+	z-index:0;
+}
+
+			
 .dragging{
 	 /*transform: scale(1.05,1.05);*/
 	box-shadow: 5px 5px 10px 3px rgba(0,0,0,0.5);
 	z-index: 1;
 }
+
+.double{
+	border: solid green 6px !important;
+}
+.blueprint{
+	border: 3px dotted #fff6;
+	border-radius: 10px;
+	position: absolute;
+	display: none;
+}
+button{
+ border-radius: 6px;
+ height: 64px;
+ min-width: 64px;
+} 
+.button{
+	border-radius: 6px;
+ 	height: 64px;
+ 	min-width: 64px;
+ 	display: inline-block;
+ 	border: 1px solid black;
+
+}
+.pin{
+	width: 32px;
+	height: 32px;
+	position: absolute;
+	transform: translate(-50%,-50%);
+	border-radius: 16px;
+	background-color: #fff5;
+	background-size: cover;
+	background-position: center;
+  	background-repeat: no-repeat;
+	/*border: white solid 3px;*/
+	box-sizing: border-box;
+	 background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" enable-background="new 0 0 24 24" height="24" viewBox="0 0 24 24" width="24"><g><rect fill="none" height="24" width="24"/></g><g><path d="M16,9V4l1,0c0.55,0,1-0.45,1-1v0c0-0.55-0.45-1-1-1H7C6.45,2,6,2.45,6,3v0 c0,0.55,0.45,1,1,1l1,0v5c0,1.66-1.34,3-3,3h0v2h5.97v7l1,1l1-1v-7H19v-2h0C17.34,12,16,10.66,16,9z" fill-rule="evenodd"/></g></svg>');
+      
+	
+}
+
+
+
+
+
 .selected{
 	background-color: blue;
 	/*--time:1s;
@@ -110,9 +162,6 @@ header .logo{
 .vacuum{
 	box-sizing: border-box;
 	border: solid blue 2px;
-}
-.double{
-	border: solid green 6px !important;
 }
 .circle{
 	border-radius: 10px;

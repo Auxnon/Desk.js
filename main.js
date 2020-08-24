@@ -61,6 +61,8 @@ function init(){
 		e.style.top='0px'
 		applyPaneMods(e);
 	});
+	initClip();
+	
 
 	let main=document.querySelector("#main");
 	main.addEventListener('pointerup',pointerUp);
@@ -274,6 +276,45 @@ function pointerDown(ev){
 	targetsHashed[targetObj.pid]=targetObj;
 	ev.stopPropagation();
 }	
+
+function clipCycle() {
+	if(targets.length>0){
+		let draggables=document.querySelectorAll('.draggables');
+		let lines=svg.querySelectorAll('line')
+		let index=0;
+
+		targets.forEach(t=>{
+			draggables.forEach(d=>{
+				if(t.entity!=draggables){
+					if(index>=lines.length){
+						let line=document.createElementNS("http://www.w3.org/2000/svg", "line");
+						lines.push(line)
+						svg.appendChild(line)
+					}
+					makeLine(lines[index],t.style.left,t.style.top,d.style.left,d.style.top)
+					
+					index++;
+				}
+			})
+		})
+	}
+	
+}
+var svg
+function initClip(){
+	svg=document.createElementNS("http://www.w3.org/2000/svg", "svg");
+
+	main.appendChild(svg);
+	setInterval(clipCycle,300)
+
+}
+function makeLine(element,x1,y1,x2,y2){
+	element.setAttribute('x1',x1)
+	element.setAttribute('x2',x2)
+	element.setAttribute('y1',y1)
+	element.setAttribute('y2',y2)
+}
+
 
 /*
 function OLDpointerDown(e){

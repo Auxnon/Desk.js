@@ -131,7 +131,23 @@ button{
  	min-width: 64px;
  	display: inline-block;
  	border: 1px solid black;
-
+	text-align: center;
+	font-weight: bold;
+	line-height: 64px;
+}
+.button:hover{
+	animation: bloop 0.5s;
+}
+@keyframes bloop{
+	0%{
+		background-image: radial-gradient(red 0%, blue 100%);
+	}
+	50%{
+		background-image: radial-gradient(red 20%, blue 20%);
+	}
+	100%{
+		background-image: radial-gradient(red 80%, blue 80%);
+	}
 }
 .pin{
 	width: 32px;

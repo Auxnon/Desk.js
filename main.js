@@ -10,17 +10,11 @@ var player={x:0,y:0,ix:0,iy:0};
 var entities=[];
 var scr;
 
-
-
-
 var scaleTrigger=false;
-
-
 var bubbleMenu=null;*/
 
 
-//var vacuumMode=false;
-
+const SNAP_DISTANCE=40;
 var doubleTapSpeed=300; //300
 var scaleSnapThreshold=100;
 
@@ -36,20 +30,6 @@ var pressThrough=false;
 
 const  SIZES=[ {w:86,h:86},{w:128,h:192},{w:512,h:256}]
 
-
-/*
-function OLDinit(){
-	let panes=$('.draggable');
-	applyPaneMods(panes);
-	panes.each(function(i,e){
-		$(this).css('z-index',i);
-	});
-	let main=$("#main");
-	main.on("pointerup",pointerUp).on("pointerdown",mainDown)
-	.on("pointermove",pointerMove).css("touch-action","none").on('paste',pasteEvent)
-	.contextmenu(mainContext);
-	//initExternal(main[0]);
-}*/
 
 function init(){
 	let panes=document.querySelectorAll('.draggable');
@@ -98,9 +78,12 @@ function init(){
 }$(init);
 function initButtonTest(){
 	document.querySelectorAll('.button').forEach((e,i)=>{
-		e.addEventListener('pointerdown',ev=>{
+		e.addEventListener('pointerup',ev=>{
 			console.log('hi'+e.innerText)
 			e.parentElement.querySelector('p').innerText=e.innerText
+			ev.stopPropagation();
+		})
+		e.addEventListener('pointerdown',ev=>{
 			ev.stopPropagation();
 		})
 	})
@@ -145,6 +128,7 @@ function applyPaneMods(pane){
 
 
 function pointerDown(ev){
+	console.log('also')
 	let entity=this;//ev.target;
 	if(!entity.classList.contains('draggable'))
 		return;
@@ -277,189 +261,128 @@ function pointerDown(ev){
 	ev.stopPropagation();
 }	
 
+var clipPoints
 function clipCycle() {
+	let st=""
 	if(targets.length>0){
-		let draggables=document.querySelectorAll('.draggables');
-		let lines=svg.querySelectorAll('line')
-		let index=0;
+		let draggables=document.querySelectorAll('.draggable');
+		clipPoints=[];
+		
 
 		targets.forEach(t=>{
 			draggables.forEach(d=>{
-				if(t.entity!=draggables){
-					if(index>=lines.length){
-						let line=document.createElementNS("http://www.w3.org/2000/svg", "line");
-						lines.push(line)
-						svg.appendChild(line)
+				if(t.entity!=d){
+					let x1=parseInt(t.entity.style.left)
+					let y1=parseInt(t.entity.style.top)
+					let w1=parseInt(t.entity.offsetWidth)
+					let h1=parseInt(t.entity.offsetHeight)
+					let x2=parseInt(d.style.left)
+					let y2=parseInt(d.style.top)
+					let w2=d.offsetWidth
+					let h2=d.offsetHeight
+
+					let xw1=x1+w1
+					let xw2=x2+w2
+					let yh1=y1+h1
+					let yh2=y2+h2
+
+					//
+					//
+
+					let sx=Math.max(x2,xw2)
+					let ex=Math.min(x2,xw2)
+
+					let sy=Math.max(y2,yh2)
+					let ey=Math.min(y2,yh2)
+					if( x1<sx && xw1>ex){          // && x2<(x1+w1) ) || ((x2+w2)>x1 && (x2+w2)< (x1+w1) )){
+						let mx1=Math.max(x1,x2)
+						let mx2=Math.min(xw1,xw2)
+
+						let dy=(y2+h2/2)-(y1+h1/2)
+						let midY
+						let distance
+						let value
+						if(dy>0){
+							distance=(yh1-y2)
+							value=y2-h1
+							midY=yh1-distance/2
+						}else{
+							distance=(yh2-y1)
+							value=yh2
+							midY=yh2-distance/2
+						}
+						if(Math.abs(distance)<SNAP_DISTANCE){
+							st+=makeLine(mx1,midY,mx2,midY)
+							clipPoints.push({drag:t.entity,target:d,mode:1,value:value})
+						}
+						
+					}else if(y1<sy && yh1>ey){
+						
+						let my1=Math.max(y1,y2)
+						let my2=Math.min(yh1,yh2)
+
+						let dx=(x2+w2/2)-(x1+w1/2)
+						let midX
+						let distance
+						let value
+						if(dx>0){
+							distance=(xw1-x2)
+							value=x2-w1
+							midX=xw1-distance/2
+						}else{
+							distance=(xw2-x1)
+							value=xw2
+							midX=xw2-distance/2
+						}
+						if(Math.abs(distance)<SNAP_DISTANCE){
+							st+=makeLine(midX,my1,midX,my2)
+							clipPoints.push({drag:t.entity,target:d,mode:0,value:value})
+						}
 					}
-					makeLine(lines[index],t.style.left,t.style.top,d.style.left,d.style.top)
+
 					
-					index++;
+					
 				}
 			})
-		})
+		});
+		
+	}else{
+		if(clipPoints){
+			clipPoints.forEach(c=>{
+				if(c.mode==0)
+					c.drag.style.left=c.value+'px'
+				else
+					c.drag.style.top=c.value+'px'
+			})
+		}
+		clipPoints=undefined;
 	}
-	
+	path.setAttribute('d',st)
 }
 var svg
+var path
 function initClip(){
 	svg=document.createElementNS("http://www.w3.org/2000/svg", "svg");
-
+	svg.style.position='absolute'
+	svg.style.left=0
+	svg.style.pointerEvents='none'
+	svg.style.top=0
+	svg.setAttribute('width',1024)
+	svg.setAttribute('height',1024)
+	svg.setAttribute('stroke','white');
+	svg.setAttribute('stroke-width','3');
+	svg.setAttribute('stroke-dasharray','8 4')
+	path=document.createElementNS("http://www.w3.org/2000/svg", "path");
+	path.setAttribute('d',"M0 0L 512 512")
+	svg.appendChild(path);
 	main.appendChild(svg);
-	setInterval(clipCycle,300)
-
+	setInterval(clipCycle,100)
 }
-function makeLine(element,x1,y1,x2,y2){
-	element.setAttribute('x1',x1)
-	element.setAttribute('x2',x2)
-	element.setAttribute('y1',y1)
-	element.setAttribute('y2',y2)
+function makeLine(x1,y1,x2,y2){
+	let st="M "+parseInt(x1)+" "+parseInt(y1)+"L"+parseInt(x2)+" "+parseInt(y2);
+	return st;
 }
 
-
-/*
-function OLDpointerDown(e){
-	let entity=$(this);
-	let offsetX=entity.position().left-e.clientX;
-	let offsetY=entity.position().top-e.clientY;
-	
-	let targetObj={entity:entity,
-		x:e.clientX,
-		y:e.clientY,
-		parent:entity.parent(),
-		selected:[],
-		offsetX:offsetX,
-		offsetY:offsetY,
-		w:entity.outerWidth(),
-		h:entity.outerHeight(),
-		double:true,
-		pid:e.pointerId};
-
-	let multiObject=false;
-	if(entity.hasClass('dragging')){
-		for(let i=0;i<targets.length;i++){
-			if(targets[i].entity && targets[i].entity.is(entity)){
-				multiObject=targets[i];
-			}
-		}
-	}
-
-	if(multiObject){ //multiple figners on the same object logic follows
-
-		if(!multiObject.linked){
-			multiObject.linked={w:0,h:0,offsetX:0,offsetY:0,array:[]};
-			multiObject.linked.array.push(multiObject)
-		}
-		multiObject.linked.array.push(targetObj);
-		targetObj.linked=multiObject.linked;
-
-		//set the initial dimensions of these multiple points for calculating scale
-		let sx,sy,lowest={x:0,y:0},offset={x:0,y:0};
-		targetObj.linked.array.forEach((ent,i)=>{
-		 	if(!sx){
-		 		sx=ent.x//+ent.offsetX;
-		 		lowest.x=ent.x;
-		 		offset.x=ent.offsetX;
-		 	}else{
-		 		sx-=ent.x//+ent.offsetX;
-		 		if(ent.x<lowest.x){
-		 			lowest.x=ent.x;
-		 			offset.x=ent.offsetX;
-		 		}
-		 	}
-		 	if(!sy){
-		 		sy=ent.y//+ent.offsetY;
-		 		lowest.y=ent.y;
-		 		offset.y=ent.offsetY;
-		 	}else{
-		 		sy-=ent.y//+ent.offsetY;
-		 		if(ent.y<lowest.y){
-		 			lowest.y=ent.y;
-		 			offset.y=ent.offsetY;
-		 		}
-		 	}
-		});
-		targetObj.linked.w=Math.abs(sx);
-		targetObj.linked.h=Math.abs(sy);
-		targetObj.linked.offsetX=offset.x;
-		targetObj.linked.offsetY=offset.y;
-		targetObj.linked.lowestX=lowest.x;
-		targetObj.linked.lowestY=lowest.y;
-
-	
-		
-	} else { //singular finger logic follows
-		entity.addClass("dragging").removeClass("selected");
-
-		if(pressThrough){
-			let hits=[];
-			$('.draggable').not(entity).each((i,ee)=>{
-				let ent=$(ee);
-				if(e.clientX > ent.position().left && e.clientX<ent.position().left+ent.outerWidth()){
-					if(e.clientY > ent.position().top && e.clientY<ent.position().top+ent.outerHeight()){
-						let obj={x:-e.clientX+ent.position().left,y:-e.clientY+ent.position().top,entity:ent,w:ent.outerWidth(),h:ent.outerHeight()};
-						hits.push(obj);
-					}
-				}
-			});
-			targetObj.selected=hits;
-		}
-
-		let z=parseInt(entity.css('z-index'));
-		let draggables=$('.draggable');
-		draggables.each(function(i,ee){
-			let ent=$(this);
-			let zEnt=parseInt(ent.css('z-index'));
-			if(zEnt>z){
-				ent.css('z-index',--zEnt);
-			}
-		});
-		entity.css('z-index',draggables.length-1);
-	}
-
-	//===double tap management===
-	if(double){
-		if(entity.is(double)){
-			if(multiDouble>1 ){
-				if(targetObj.linked && targetObj.linked.array.length>1){
-					console.log('multidouble!!!! '+multiDouble);
-					double=false;
-					if(entity[0].style.width=='100%'){
-						entity.css({transition:'0.2s',left:targetObj.linked.lowestX-40,top:targetObj.linked.lowestY-40,width:(targetObj.linked.w+80)+'px',height:(targetObj.linked.h+80)+'px'});
-						setTimeout(function(){entity.css('transition','');},200);
-					}else{
-						entity.css({transition:'0.2s',left:0,top:0,width:'100%',height:'100%'});
-						setTimeout(function(){entity.css('transition','');},200);
-					}
-				}
-			}else{
-				double=false;
-				console.log('double!!!!');
-				navigator.clipboard.readText()
-				  .then(text => {
-				    console.log('Pasted content: ', text);
-				    entity.find('p').html(text);
-				  })
-				  .catch(err => {
-				    console.error('Failed to read clipboard contents: ', err);
-				  });
-			}
-		}
-	}
-	setTimeout(function(){
-		targetObj.double=false;
-	},doubleTapSpeed);
-	//============================
-	
-
-
-	targets.push(targetObj);
-	targetsHashed[targetObj.pid]=targetObj;
-	e.stopPropagation();
-}	*/
-/*//annoying polyfills until Safari (at least for iPads) supports pointer events
-function touchMove(e){
-	gestureMove(e,)
-}*/
 function pointerMove(ev){
 	gestureMove(ev,ev.pointerId);
 }
@@ -621,6 +544,7 @@ function gestureMove(ev,id){
 
 function pointerUp(ev){
 	scaleTrigger=false;
+
 	/*if(selected.length>0){
 		let group=$('<div class="group draggable"></div>');
 		selected.push(target);
@@ -787,11 +711,155 @@ function snapToScale(entity,advanceSize){
 
 
 
+/////////////////////////EXTRA///////////////////////////////
 
 
 
 
+/*
+function OLDpointerDown(e){
+	let entity=$(this);
+	let offsetX=entity.position().left-e.clientX;
+	let offsetY=entity.position().top-e.clientY;
+	
+	let targetObj={entity:entity,
+		x:e.clientX,
+		y:e.clientY,
+		parent:entity.parent(),
+		selected:[],
+		offsetX:offsetX,
+		offsetY:offsetY,
+		w:entity.outerWidth(),
+		h:entity.outerHeight(),
+		double:true,
+		pid:e.pointerId};
 
+	let multiObject=false;
+	if(entity.hasClass('dragging')){
+		for(let i=0;i<targets.length;i++){
+			if(targets[i].entity && targets[i].entity.is(entity)){
+				multiObject=targets[i];
+			}
+		}
+	}
+
+	if(multiObject){ //multiple figners on the same object logic follows
+
+		if(!multiObject.linked){
+			multiObject.linked={w:0,h:0,offsetX:0,offsetY:0,array:[]};
+			multiObject.linked.array.push(multiObject)
+		}
+		multiObject.linked.array.push(targetObj);
+		targetObj.linked=multiObject.linked;
+
+		//set the initial dimensions of these multiple points for calculating scale
+		let sx,sy,lowest={x:0,y:0},offset={x:0,y:0};
+		targetObj.linked.array.forEach((ent,i)=>{
+		 	if(!sx){
+		 		sx=ent.x//+ent.offsetX;
+		 		lowest.x=ent.x;
+		 		offset.x=ent.offsetX;
+		 	}else{
+		 		sx-=ent.x//+ent.offsetX;
+		 		if(ent.x<lowest.x){
+		 			lowest.x=ent.x;
+		 			offset.x=ent.offsetX;
+		 		}
+		 	}
+		 	if(!sy){
+		 		sy=ent.y//+ent.offsetY;
+		 		lowest.y=ent.y;
+		 		offset.y=ent.offsetY;
+		 	}else{
+		 		sy-=ent.y//+ent.offsetY;
+		 		if(ent.y<lowest.y){
+		 			lowest.y=ent.y;
+		 			offset.y=ent.offsetY;
+		 		}
+		 	}
+		});
+		targetObj.linked.w=Math.abs(sx);
+		targetObj.linked.h=Math.abs(sy);
+		targetObj.linked.offsetX=offset.x;
+		targetObj.linked.offsetY=offset.y;
+		targetObj.linked.lowestX=lowest.x;
+		targetObj.linked.lowestY=lowest.y;
+
+	
+		
+	} else { //singular finger logic follows
+		entity.addClass("dragging").removeClass("selected");
+
+		if(pressThrough){
+			let hits=[];
+			$('.draggable').not(entity).each((i,ee)=>{
+				let ent=$(ee);
+				if(e.clientX > ent.position().left && e.clientX<ent.position().left+ent.outerWidth()){
+					if(e.clientY > ent.position().top && e.clientY<ent.position().top+ent.outerHeight()){
+						let obj={x:-e.clientX+ent.position().left,y:-e.clientY+ent.position().top,entity:ent,w:ent.outerWidth(),h:ent.outerHeight()};
+						hits.push(obj);
+					}
+				}
+			});
+			targetObj.selected=hits;
+		}
+
+		let z=parseInt(entity.css('z-index'));
+		let draggables=$('.draggable');
+		draggables.each(function(i,ee){
+			let ent=$(this);
+			let zEnt=parseInt(ent.css('z-index'));
+			if(zEnt>z){
+				ent.css('z-index',--zEnt);
+			}
+		});
+		entity.css('z-index',draggables.length-1);
+	}
+
+	//===double tap management===
+	if(double){
+		if(entity.is(double)){
+			if(multiDouble>1 ){
+				if(targetObj.linked && targetObj.linked.array.length>1){
+					console.log('multidouble!!!! '+multiDouble);
+					double=false;
+					if(entity[0].style.width=='100%'){
+						entity.css({transition:'0.2s',left:targetObj.linked.lowestX-40,top:targetObj.linked.lowestY-40,width:(targetObj.linked.w+80)+'px',height:(targetObj.linked.h+80)+'px'});
+						setTimeout(function(){entity.css('transition','');},200);
+					}else{
+						entity.css({transition:'0.2s',left:0,top:0,width:'100%',height:'100%'});
+						setTimeout(function(){entity.css('transition','');},200);
+					}
+				}
+			}else{
+				double=false;
+				console.log('double!!!!');
+				navigator.clipboard.readText()
+				  .then(text => {
+				    console.log('Pasted content: ', text);
+				    entity.find('p').html(text);
+				  })
+				  .catch(err => {
+				    console.error('Failed to read clipboard contents: ', err);
+				  });
+			}
+		}
+	}
+	setTimeout(function(){
+		targetObj.double=false;
+	},doubleTapSpeed);
+	//============================
+	
+
+
+	targets.push(targetObj);
+	targetsHashed[targetObj.pid]=targetObj;
+	e.stopPropagation();
+}	*/
+/*//annoying polyfills until Safari (at least for iPads) supports pointer events
+function touchMove(e){
+	gestureMove(e,)
+}*/
 
 
 function stopBubbleMenu(){
